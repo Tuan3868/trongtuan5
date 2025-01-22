@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tết 2025</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    canvas {
+      display: block;
+    }
+    #changeImageButton {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      background-color: #ff5500;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 5px;
+    }
+    #changeImageButton:hover {
+      background-color: #ff7700;
+    }
+    #playMusicButton {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      background-color: #008CBA;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 5px;
+    }
+    #playMusicButton:hover {
+      background-color: #00A1C6;
+    }
+    @font-face {
+      font-family: 'Quatrimang';
+      src: url('https://fonts.gstatic.com/s/quatrimang/v7/J7q1c13y7cvlvHhW3A9Ftf3F6mc6dR7Jbx7g.woff2') format('woff2');
+    }
+  </style>
+</head>
+<body>
+  <canvas id="fireworksCanvas"></canvas>
+  <button id="changeImageButton">Chọn ảnh mới</button>
+  <button id="playMusicButton">Phát nhạc</button>
+  <input type="file" id="imageInput" style="display: none;" accept="image/*" />
+  <script>
+    const audio = new Audio("nhac1.wav");
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    let audioSource;
+    let scale = 1;
+    let image = new Image();
+    let imageSrc = "anh2.png"; 
+    
+    function enableMusic() {
+      audioContext.resume().then(() => {
+        audio.play();
+        audioSource = audioContext.createMediaElementSource(audio);
+        audioSource.connect(analyser);
+        analyser.connect(audioContext.destination);
+      });
+    }
+    
+    const playMusicButton = document.getElementById("playMusicButton");
+    playMusicButton.addEventListener("click", () => {
+      if (audio.paused) {
+        enableMusic();
+        playMusicButton.textContent = "Tạm dừng nhạc";
+      } else {
+        audio.pause();
+        playMusicButton.textContent = "Phát nhạc";
+      }
+    });
+
+    const canvas = document.getElementById("fireworksCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const fireworks = [];
+    const particlesPerFirework = 200;
+    const colors = ["#ff0000", "#ff9900", "#ffff00", "#00ff00", "#00ffff", "#0000ff", "#ff00ff", "#ffffff"];
+    
+    class Particle {
+      constructor(x, y, color, size, velocityMultiplier = 1, angle = 0) {
+        this.x = x;
+        this.y = y;
+        this.vx = Math.cos(angle) * velocityMultiplier + (Math.random() * 2 - 1);
+        this.vy = Math.sin(angle) * velocityMultiplier + (Math.random() * 2 - 1);
+        this.size = size;
+        this.color = color;
+        this.alpha = 1;
+        this.brightness = Math.random() * 0.7 + 0.7;
+        this.layer = Math.random() * 0.5 + 0.5;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= 0.02;
+        this.size *= 0.98;
+      }
+      draw() {
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * this.brightness * this.layer, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    class Firework {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.particles = [];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const particleVelocity = Math.random() * 6 + 8;
+        for (let i = 0; i < particlesPerFirework; i++) {
+          const angle = (Math.PI * 2) / particlesPerFirework * i;
+          this.particles.push(new Particle(x, y, color, Math.random() * 4 + 2, particleVelocity, angle));
+        }
+      }
+      update() {
+        this.particles.forEach((particle) => particle.update());
+        this.particles = this.particles.filter((particle) => particle.alpha > 0);
+      }
+      draw() {
+        this.particles.forEach((particle) => particle.draw());
+      }
+    }
+    function addFirework() {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height / 2;
+      fireworks.push(new Firework(x, y));
+    }
+    function drawVerticalText(text, x, y) {
+      const characters = text.split("\n");
+      characters.forEach((char, index) => {
+        const gradient = ctx.createLinearGradient(0, y, 0, y + 400);
+        colors.forEach((color, i) => gradient.addColorStop(i / (colors.length - 1), color));
+        ctx.fillStyle = gradient;
+        ctx.fillText(char, x, y + index * 60);
+      });
+    }
+    function drawTextAndImage() {
+      ctx.save();
+      const avgFrequency = audioSource ? dataArray.reduce((a, b) => a + b, 0) / dataArray.length : 0;
+      const fontSize = 48 + avgFrequency / 5;
+      ctx.font = `${fontSize}px 'Quatrimang', cursive`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "white";
+      ctx.fillText("𝓗𝓐𝓟𝓟𝓨  𝓝𝓔𝓦  𝓨𝓔𝓐𝓡 𝟐𝟎𝟐𝟓", canvas.width / 2, 80);
+      if (image.complete) {
+        const imgWidth = image.width / 2 * scale;
+        const imgHeight = image.height / 2 * scale;
+        const imgX = canvas.width / 2 - imgWidth / 2;
+        const imgY = canvas.height / 2 - imgHeight / 2;
+        ctx.drawImage(image, imgX, imgY, imgWidth, imgHeight);
+        const leftText = "𝕮𝖍𝖚́𝖈\n𝕿𝖊̂́𝖙\n𝖉𝖊̂́𝖓\n𝕿𝖗𝖆̆𝖒\n𝕯𝖎𝖊̂̀𝖚\n𝕹𝖍𝖚̛\n𝖄́";
+        const rightText = "𝕸𝖚̛̀𝖓𝖌\n𝖃𝖚𝖆̂𝖓\n𝕾𝖆𝖓𝖌\n𝖁𝖆̣𝖓\n𝕾𝖚̛̣\n𝕿𝖍𝖆̀𝖓𝖍 \n𝕮𝖔̂𝖓𝖌";
+        drawVerticalText(leftText, imgX - 100, imgY + 50);
+        drawVerticalText(rightText, imgX + imgWidth + 100, imgY + 50);
+      }
+      ctx.restore();
+    }
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      fireworks.forEach((firework, index) => {
+        firework.update();
+        firework.draw();
+        if (firework.particles.length === 0) {
+          fireworks.splice(index, 1);
+        }
+      });
+      if (audioSource) {
+        analyser.getByteFrequencyData(dataArray);
+        const avgFrequency = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+        scale = 1 + avgFrequency / 256;
+      }
+      drawTextAndImage();
+      requestAnimationFrame(animate);
+    }
+    setInterval(addFirework, 100);
+    animate();
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+    const imageInput = document.getElementById("imageInput");
+    document.getElementById("changeImageButton").addEventListener("click", () => {
+      imageInput.click();
+    });
+    imageInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          imageSrc = e.target.result;
+          image.src = imageSrc;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+    image.src = imageSrc;
+  </script>
+</body>
+</html>
